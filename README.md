@@ -6,6 +6,8 @@ A working reference implementation of a **Filament CMS kept consistent with a co
 
 Laravel 13 · Filament 5 · PHP 8.5 · RabbitMQ 4.1 (quorum queues) · MySQL · PHPStan level 8 · Deptrac · PHPUnit 12
 
+![Mission Control: live pipeline topology from the Filament outbox through RabbitMQ retry tiers to the Core read model](docs/screenshots/mission-control.png)
+
 ## The scenario
 
 *Fellwise* is an invented UK marketplace for guided outdoor experiences, split into two bounded contexts:
@@ -25,6 +27,12 @@ Open the live demo, or run it locally (see below):
 3. **Prove it's safe.** Click *Replay from outbox*. The same event ids are re-published, and Core's inbox skips every one as a duplicate, so nothing is applied twice.
 4. **Inspect any event:** every hop with real timestamps, the error each failed attempt saw, the v1 → v2 upcast, and per-event replay.
 5. **Reporting:** revenue, bookings and lead time from CQRS read models over ~95k bookings. Each card can show its SQL and `EXPLAIN` output.
+
+| Broken sync: 20 messages parked, 20 experiences drifted | One event's forensics: retries, park, unpark, duplicate-skipped replay |
+|---|---|
+| ![Parked messages and drift on Mission Control](docs/screenshots/parked-topology.png) | ![Event detail with every delivery attempt](docs/screenshots/event-detail.png) |
+
+![Reporting over CQRS read models](docs/screenshots/reporting.png)
 
 ## How it works
 
