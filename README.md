@@ -1,8 +1,10 @@
 # Fellwise
 
+Fellwise is an outdoor-experiences marketplace demo, built with Laravel and Filament. It uses RabbitMQ events to keep catalogue and booking data in sync.
+
 An editor changes a listing and presses Save. When does the booking system see the same thing?
 
-Fellwise makes that journey visible. It is a fictional outdoor-experiences marketplace where catalogue editing and bookings have their own data. A saved change still needs to reach the other side, even if a service is down, a message arrives twice or an older update turns up late.
+Catalogue editing and bookings have their own data. A saved change still needs to reach the other side, even if a service is down, a message arrives twice or an older update turns up late. Fellwise makes that journey visible.
 
 [Try the demo](https://fellwise.davidmansaray.com) · [Local setup and operator guide](backend/README.md)
 
@@ -25,7 +27,7 @@ Choose **View demo** to enter the shared sample workspace without signing up.
 3. Choose **Replay from outbox**. The same events return; the inbox recognises them and skips work it has already applied.
 4. Open an event to inspect its delivery attempts and errors. Then explore reporting, including the SQL and `EXPLAIN` behind the figures.
 
-The hosted demo uses fictional, shared data. Its public-demo fault controls expire after three minutes. This is a reference application for inspecting the design and recovery behaviour, not evidence of a production customer deployment.
+The hosted demo uses shared sample data. Its public-demo fault controls expire after three minutes. The demo lets you inspect the design and its recovery behaviour.
 
 | Work waiting to recover | The history of one event |
 |---|---|
@@ -37,7 +39,7 @@ Laravel and Filament provide the editing and operations interface, RabbitMQ carr
 
 The catalogue change and outbox event commit in one transaction. A relay publishes the event and waits for broker confirmation. On the booking side, the inbox claim and projection update commit together before the consumer acknowledges delivery.
 
-Retry queues lead to a parking lot, version checks protect ordering, and sync hashes reveal drift. The same event pipeline also supports a migration from the fictional legacy TrailDesk platform. Reporting uses dedicated read models over synthetic historical bookings.
+Retry queues lead to a parking lot, version checks protect ordering, and sync hashes reveal drift. The same event pipeline also supports a migration from the sample legacy TrailDesk platform. Reporting uses dedicated read models over synthetic historical bookings.
 
 The [backend guide](backend/README.md) covers the pipeline, repository layout and operator commands. The [architecture decisions](backend/docs/adr/) explain the trade-offs around context boundaries, delivery, migration and reporting.
 
