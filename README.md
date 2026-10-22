@@ -1,80 +1,45 @@
-# Fellwise: event-driven Filament CMS
+# Fellwise
 
-A working reference implementation of a **Filament CMS kept consistent with a core API through domain events on RabbitMQ**. It covers the parts that are hard to get right in production: a transactional outbox, an idempotent inbox, TTL retry tiers with a parking lot, replay, event versioning and upcasting, drift detection, a strangler-fig migration off a legacy platform, and CQRS reporting on MySQL.
+An editor changes a listing and presses Save. When does the booking system see the same thing?
 
-**Live demo: https://fellwise.davidmansaray.com** (click *View demo*, no sign-up. It runs on shared sample data, faults switch off after 3 minutes, and the data is rebuilt nightly.)
+Fellwise makes that journey visible. It is a fictional outdoor-experiences marketplace where catalogue editing and bookings have their own data. A saved change still needs to reach the other side, even if a service is down, a message arrives twice or an older update turns up late.
 
-Laravel 13 · Filament 5 · PHP 8.5 · RabbitMQ 4.1 (quorum queues) · MySQL · PHPStan level 8 · Deptrac · PHPUnit 12
+[Try the demo](https://fellwise.davidmansaray.com) · [Local setup and operator guide](backend/README.md)
 
-![Mission Control: live pipeline topology from the Filament outbox through RabbitMQ retry tiers to the Core read model](docs/screenshots/mission-control.png)
+![Mission Control showing the event pipeline from catalogue to bookings](docs/screenshots/mission-control.png)
 
-## The scenario
+## Saved is one step. Delivered is another.
 
-*Fellwise* is an invented UK marketplace for guided outdoor experiences, split into two bounded contexts:
+For the editor, publishing a listing should be uneventful. For the person looking after the system, a successful save is only part of the picture.
 
-- **CMS (Catalogue context):** the Filament panel where editors write and publish experience listings.
-- **Core API (Bookings context):** owns bookings, availability and reporting, and keeps its own projection of the catalogue.
-- **TrailDesk:** the legacy PHP 5 platform being retired. Its data moves across through the same event pipeline.
+Mission Control shows what is waiting, what has failed and whether the catalogue and booking system agree. Recovery controls sit beside that evidence: inspect the failed event, repair the fault, then put the work back through the pipeline.
 
-Neither context reads the other's tables or imports the other's classes. They communicate only through versioned events.
+A retry should not mean another booking-side update. The consumer recognises events it has already applied, and version checks stop late changes from overwriting newer ones. Those rules make replay a useful recovery tool.
 
-## What to try
+## Try breaking the connection
 
-Open the live demo, or run it locally (see below):
+Choose **View demo** to enter the shared sample workspace without signing up.
 
-1. **Break the sync.** Toggle *Fail Core consumer*, then click *Publish 20 changes*. Messages step through the `5s → 15s → 45s` retry queues into the parking lot, and the consistency checker reports 20 experiences drifted.
-2. **Repair it.** Turn the fault off and click *Unpark all*. Drift returns to zero.
-3. **Prove it's safe.** Click *Replay from outbox*. The same event ids are re-published, and Core's inbox skips every one as a duplicate, so nothing is applied twice.
-4. **Inspect any event:** every hop with real timestamps, the error each failed attempt saw, the v1 → v2 upcast, and per-event replay.
-5. **Reporting:** revenue, bookings and lead time from CQRS read models over ~95k bookings. Each card can show its SQL and `EXPLAIN` output.
+1. Turn on **Fail Core consumer**, then choose **Publish 20 changes**. Watch retries build up, messages reach the parking lot and the consistency checker report drift.
+2. Turn the fault off and choose **Unpark all**. Follow the backlog as the catalogue and booking side catch up.
+3. Choose **Replay from outbox**. The same events return; the inbox recognises them and skips work it has already applied.
+4. Open an event to inspect its delivery attempts and errors. Then explore reporting, including the SQL and `EXPLAIN` behind the figures.
 
-| Broken sync: 20 messages parked, 20 experiences drifted | One event's forensics: retries, park, unpark, duplicate-skipped replay |
+The hosted demo uses fictional, shared data. Its public-demo fault controls expire after three minutes. This is a reference application for inspecting the design and recovery behaviour, not evidence of a production customer deployment.
+
+| Work waiting to recover | The history of one event |
 |---|---|
-| ![Parked messages and drift on Mission Control](docs/screenshots/parked-topology.png) | ![Event detail with every delivery attempt](docs/screenshots/event-detail.png) |
-
-![Reporting over CQRS read models](docs/screenshots/reporting.png)
+| ![Parked messages and catalogue drift](docs/screenshots/parked-topology.png) | ![Event detail with delivery attempts and replay](docs/screenshots/event-detail.png) |
 
 ## How it works
 
-```
-Filament ─▶ Experience aggregate ─▶ one MySQL tx: row + outbox row
-                                          │ outbox:relay (publisher confirms)
-                                          ▼
-              fellwise.events (topic) ─▶ core.catalogue ─▶ Core inbox + projector (one tx)
-                                     ─▶ cms.bookings   ─▶ CMS booking stats
-                 on failure ─▶ retry.5s | 15s | 45s (TTL) ─▶ back to the owning queue
-                 after 3    ─▶ parking-lot (operator unparks or replays)
-```
+Laravel and Filament provide the editing and operations interface, RabbitMQ carries domain events, and MySQL holds the data. Catalogue and Bookings are separate bounded contexts in one Laravel codebase, with separate schemas. Neither reads the other's tables.
 
-| Concern | How it's handled |
-|---|---|
-| Dual writes | Aggregate and event are committed in one transaction (transactional outbox); the relay marks rows published only after broker confirms |
-| Duplicates | `(event_id, consumer)` inbox claim inside the handler's transaction |
-| Ordering | Projectors guard on `aggregate_version`; a late publish cannot resurrect an unpublished experience |
-| Retries | TTL queue tiers dead-letter back to the owning queue only; no `sleep()` in consumers |
-| Poison messages | Contract violations park immediately; malformed bodies dead-letter to the parking lot |
-| Schema evolution | Versioned routing keys, an upcaster chain, and JSON Schemas with contract tests |
-| Drift | Indexed `sync_hash` columns on both sides, compared by `consistency:check` |
-| Legacy migration | Anti-corruption layer and a resumable cursor in the same transaction |
+The catalogue change and outbox event commit in one transaction. A relay publishes the event and waits for broker confirmation. On the booking side, the inbox claim and projection update commit together before the consumer acknowledges delivery.
 
-## Repository layout
+Retry queues lead to a parking lot, version checks protect ordering, and sync hashes reveal drift. The same event pipeline also supports a migration from the fictional legacy TrailDesk platform. Reporting uses dedicated read models over synthetic historical bookings.
 
-```
-backend/
-  src/
-    Catalogue/   CMS context: Domain · Application · Infrastructure
-    Bookings/    Core context: Domain · Application · Infrastructure
-    Shared/      Envelope, outbox, inbox, RabbitMQ, retry policy, upcasting
-    Migration/   TrailDesk anti-corruption layer and backfill
-    Operations/  Consistency checker
-  app/           Filament panel and artisan commands (composition root)
-  docs/adr/      Architecture decision records
-  docs/events/   JSON Schemas for every event version
-  infra/rabbitmq Broker definitions (topology as code) and docker compose
-  tests/         Unit, feature, contract and real-broker tests
-```
-
-Layer boundaries are enforced by Deptrac: Catalogue and Bookings can't import each other, and domain layers can't import the framework.
+The [backend guide](backend/README.md) covers the pipeline, repository layout and operator commands. The [architecture decisions](backend/docs/adr/) explain the trade-offs around context boundaries, delivery, migration and reporting.
 
 ## Running it locally
 
@@ -95,6 +60,8 @@ php artisan serve
 Sign in as `ops@fellwise.co.uk` / `fellwise`.
 
 ## Quality
+
+From `backend`:
 
 ```bash
 composer quality   # Pint, PHPStan level 8, Deptrac
