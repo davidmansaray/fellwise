@@ -1,0 +1,50 @@
+# Architecture rules (ADR-001). Bounded contexts talk only through the
+# broker: Catalogue and Bookings may never import each other, and domain
+# layers stay free of the framework.
+deptrac:
+  paths:
+    - ./src
+    - ./app
+  exclude_files:
+    - '#.*/tests/.*#'
+  layers:
+    - name: SharedDomain
+      collectors: [{ type: directory, value: src/Shared/Domain/.* }]
+    - name: SharedApplication
+      collectors: [{ type: directory, value: src/Shared/Application/.* }]
+    - name: SharedInfrastructure
+      collectors: [{ type: directory, value: src/Shared/Infrastructure/.* }]
+    - name: CatalogueDomain
+      collectors: [{ type: directory, value: src/Catalogue/Domain/.* }]
+    - name: CatalogueApplication
+      collectors: [{ type: directory, value: src/Catalogue/Application/.* }]
+    - name: CatalogueInfrastructure
+      collectors: [{ type: directory, value: src/Catalogue/Infrastructure/.* }]
+    - name: BookingsDomain
+      collectors: [{ type: directory, value: src/Bookings/Domain/.* }]
+    - name: BookingsApplication
+      collectors: [{ type: directory, value: src/Bookings/Application/.* }]
+    - name: BookingsInfrastructure
+      collectors: [{ type: directory, value: src/Bookings/Infrastructure/.* }]
+    - name: Migration
+      collectors: [{ type: directory, value: src/Migration/.* }]
+    - name: Operations
+      collectors: [{ type: directory, value: src/Operations/.* }]
+    - name: Panel
+      collectors: [{ type: directory, value: app/.* }]
+    - name: Framework
+      collectors: [{ type: classLike, value: '^(Illuminate|Filament|Livewire|PhpAmqpLib|Carbon)\\.*' }]
+
+  ruleset:
+    SharedDomain: ~
+    SharedApplication: [SharedDomain, Framework]
+    SharedInfrastructure: [SharedApplication, SharedDomain, Framework]
+    CatalogueDomain: [SharedDomain]
+    CatalogueApplication: [CatalogueDomain, SharedApplication, SharedDomain, Framework]
+    CatalogueInfrastructure: [CatalogueApplication, CatalogueDomain, SharedApplication, SharedDomain, SharedInfrastructure, Framework]
+    BookingsDomain: [SharedDomain]
+    BookingsApplication: [BookingsDomain, SharedApplication, SharedDomain, Framework]
+    BookingsInfrastructure: [BookingsApplication, BookingsDomain, SharedApplication, SharedDomain, SharedInfrastructure, Framework]
+    Migration: [CatalogueApplication, SharedApplication, SharedDomain, Framework]
+    Operations: [Framework]
+    Panel: [SharedDomain, SharedApplication, SharedInfrastructure, CatalogueDomain, CatalogueApplication, CatalogueInfrastructure, BookingsDomain, BookingsApplication, BookingsInfrastructure, Migration, Operations, Framework]

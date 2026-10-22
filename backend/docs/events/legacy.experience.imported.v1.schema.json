@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.fellwise.co.uk/events/legacy.experience.imported.v1.schema.json",
+  "title": "legacy.experience.imported v1 payload",
+  "description": "A TrailDesk listing was taken over by the CMS (strangler fig). Carries the canonical shape plus the legacy id.",
+  "x-event-name": "legacy.experience.imported",
+  "x-event-version": 1,
+  "type": "object",
+  "properties": {
+    "experience_id": {
+      "$ref": "#/$defs/ulid"
+    },
+    "legacy_id": {
+      "type": "string",
+      "pattern": "^[0-9]+$"
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "\\S"
+    },
+    "region_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 40
+    },
+    "price": {
+      "$ref": "#/$defs/money"
+    },
+    "live": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "experience_id",
+    "legacy_id",
+    "slug",
+    "title",
+    "region_id",
+    "price",
+    "live"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ulid": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "money": {
+      "type": "object",
+      "description": "Money as integer minor units (pence). Never a float.",
+      "properties": {
+        "amount_minor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        }
+      },
+      "required": [
+        "amount_minor",
+        "currency"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

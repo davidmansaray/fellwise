@@ -1,0 +1,282 @@
+{
+  "rabbit_version": "4.1.0",
+  "vhosts": [
+    {
+      "name": "fellwise"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "fellwise.events",
+      "vhost": "fellwise",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "fellwise.retry",
+      "vhost": "fellwise",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "fellwise.requeue",
+      "vhost": "fellwise",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "fellwise.parking",
+      "vhost": "fellwise",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "core.catalogue",
+      "vhost": "fellwise",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "fellwise.parking",
+        "x-dead-letter-routing-key": "core.catalogue",
+        "x-delivery-limit": 10
+      }
+    },
+    {
+      "name": "core.catalogue.retry.5s",
+      "vhost": "fellwise",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-message-ttl": 5000,
+        "x-dead-letter-exchange": "fellwise.requeue",
+        "x-dead-letter-routing-key": "core.catalogue",
+        "x-dead-letter-strategy": "at-least-once",
+        "x-overflow": "reject-publish"
+      }
+    },
+    {
+      "name": "core.catalogue.retry.15s",
+      "vhost": "fellwise",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-message-ttl": 15000,
+        "x-dead-letter-exchange": "fellwise.requeue",
+        "x-dead-letter-routing-key": "core.catalogue",
+        "x-dead-letter-strategy": "at-least-once",
+        "x-overflow": "reject-publish"
+      }
+    },
+    {
+      "name": "core.catalogue.retry.45s",
+      "vhost": "fellwise",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-message-ttl": 45000,
+        "x-dead-letter-exchange": "fellwise.requeue",
+        "x-dead-letter-routing-key": "core.catalogue",
+        "x-dead-letter-strategy": "at-least-once",
+        "x-overflow": "reject-publish"
+      }
+    },
+    {
+      "name": "core.catalogue.parking-lot",
+      "vhost": "fellwise",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    },
+    {
+      "name": "cms.bookings",
+      "vhost": "fellwise",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "fellwise.parking",
+        "x-dead-letter-routing-key": "cms.bookings",
+        "x-delivery-limit": 10
+      }
+    },
+    {
+      "name": "cms.bookings.retry.5s",
+      "vhost": "fellwise",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-message-ttl": 5000,
+        "x-dead-letter-exchange": "fellwise.requeue",
+        "x-dead-letter-routing-key": "cms.bookings",
+        "x-dead-letter-strategy": "at-least-once",
+        "x-overflow": "reject-publish"
+      }
+    },
+    {
+      "name": "cms.bookings.retry.15s",
+      "vhost": "fellwise",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-message-ttl": 15000,
+        "x-dead-letter-exchange": "fellwise.requeue",
+        "x-dead-letter-routing-key": "cms.bookings",
+        "x-dead-letter-strategy": "at-least-once",
+        "x-overflow": "reject-publish"
+      }
+    },
+    {
+      "name": "cms.bookings.retry.45s",
+      "vhost": "fellwise",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-message-ttl": 45000,
+        "x-dead-letter-exchange": "fellwise.requeue",
+        "x-dead-letter-routing-key": "cms.bookings",
+        "x-dead-letter-strategy": "at-least-once",
+        "x-overflow": "reject-publish"
+      }
+    },
+    {
+      "name": "cms.bookings.parking-lot",
+      "vhost": "fellwise",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "fellwise.events",
+      "vhost": "fellwise",
+      "destination": "core.catalogue",
+      "destination_type": "queue",
+      "routing_key": "catalogue.#",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.events",
+      "vhost": "fellwise",
+      "destination": "core.catalogue",
+      "destination_type": "queue",
+      "routing_key": "legacy.#",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.requeue",
+      "vhost": "fellwise",
+      "destination": "core.catalogue",
+      "destination_type": "queue",
+      "routing_key": "core.catalogue",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.retry",
+      "vhost": "fellwise",
+      "destination": "core.catalogue.retry.5s",
+      "destination_type": "queue",
+      "routing_key": "core.catalogue.retry.5s",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.retry",
+      "vhost": "fellwise",
+      "destination": "core.catalogue.retry.15s",
+      "destination_type": "queue",
+      "routing_key": "core.catalogue.retry.15s",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.retry",
+      "vhost": "fellwise",
+      "destination": "core.catalogue.retry.45s",
+      "destination_type": "queue",
+      "routing_key": "core.catalogue.retry.45s",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.parking",
+      "vhost": "fellwise",
+      "destination": "core.catalogue.parking-lot",
+      "destination_type": "queue",
+      "routing_key": "core.catalogue",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.events",
+      "vhost": "fellwise",
+      "destination": "cms.bookings",
+      "destination_type": "queue",
+      "routing_key": "bookings.#",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.requeue",
+      "vhost": "fellwise",
+      "destination": "cms.bookings",
+      "destination_type": "queue",
+      "routing_key": "cms.bookings",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.retry",
+      "vhost": "fellwise",
+      "destination": "cms.bookings.retry.5s",
+      "destination_type": "queue",
+      "routing_key": "cms.bookings.retry.5s",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.retry",
+      "vhost": "fellwise",
+      "destination": "cms.bookings.retry.15s",
+      "destination_type": "queue",
+      "routing_key": "cms.bookings.retry.15s",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.retry",
+      "vhost": "fellwise",
+      "destination": "cms.bookings.retry.45s",
+      "destination_type": "queue",
+      "routing_key": "cms.bookings.retry.45s",
+      "arguments": {}
+    },
+    {
+      "source": "fellwise.parking",
+      "vhost": "fellwise",
+      "destination": "cms.bookings.parking-lot",
+      "destination_type": "queue",
+      "routing_key": "cms.bookings",
+      "arguments": {}
+    }
+  ],
+  "policies": [],
+  "parameters": []
+}

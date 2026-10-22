@@ -1,0 +1,20 @@
+{
+  "event_id": "01JXK3M8Q4V5T6W7X8Y9Z0A1B2",
+  "event_name": "catalogue.experience.published",
+  "event_version": 1,
+  "occurred_at": "2025-06-01T06:00:00.000+00:00",
+  "aggregate_type": "experience",
+  "aggregate_id": "01JXK3M8Q4V5T6W7X8Y9Z0A1EX",
+  "aggregate_version": 3,
+  "correlation_id": "01JXK3M8Q4V5T6W7X8Y9Z0A1C0",
+  "causation_id": null,
+  "producer": "fellwise-cms",
+  "payload": {
+    "experience_id": "01JXK3M8Q4V5T6W7X8Y9Z0A1EX",
+    "slug": "scafell-pike-sunrise",
+    "title": "Scafell Pike sunrise",
+    "region_id": "lake-district",
+    "price": 85.1,
+    "published_at": "2025-06-01T06:00:00+00:00"
+  }
+}

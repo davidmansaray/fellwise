@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.fellwise.co.uk/events/catalogue.experience.unpublished.v1.schema.json",
+  "title": "catalogue.experience.unpublished v1 payload",
+  "description": "An experience was taken off sale.",
+  "x-event-name": "catalogue.experience.unpublished",
+  "x-event-version": 1,
+  "type": "object",
+  "properties": {
+    "experience_id": {
+      "$ref": "#/$defs/ulid"
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 500
+    }
+  },
+  "required": [
+    "experience_id",
+    "reason"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ulid": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    }
+  }
+}

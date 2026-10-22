@@ -1,0 +1,28 @@
+# RabbitMQ for Fellwise, bound to 127.0.0.1 only on ports 5682/15682 (what .env.example expects).
+# Run it locally, or on a remote host and forward it with scripts/broker-tunnel.sh.
+services:
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    container_name: fellwise-rabbitmq
+    restart: unless-stopped
+    hostname: fellwise-rabbit
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-fellwise}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:?set RABBITMQ_PASS}
+      RABBITMQ_DEFAULT_VHOST: fellwise
+      # 1s management stats so the console's queue depths are live.
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit collect_statistics_interval 1000"
+    ports:
+      - "127.0.0.1:5682:5672"
+      - "127.0.0.1:15682:15672"
+    volumes:
+      - ./definitions.json:/etc/rabbitmq/definitions.json:ro
+      - fellwise-rabbitmq-data:/var/lib/rabbitmq
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+volumes:
+  fellwise-rabbitmq-data:

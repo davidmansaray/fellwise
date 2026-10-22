@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.fellwise.co.uk/events/catalogue.experience.published.v1.schema.json",
+  "title": "catalogue.experience.published v1 payload",
+  "description": "RETIRED (2025). Price was a float in pounds. Still replayable from the outbox; consumers upcast it to v2.",
+  "x-event-name": "catalogue.experience.published",
+  "x-event-version": 1,
+  "type": "object",
+  "properties": {
+    "experience_id": {
+      "$ref": "#/$defs/ulid"
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "\\S"
+    },
+    "region_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 40
+    },
+    "guide_id": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ulid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Pounds as a float (the reason v2 exists)."
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "experience_id",
+    "slug",
+    "title",
+    "region_id",
+    "price"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ulid": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    }
+  }
+}

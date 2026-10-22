@@ -1,0 +1,18 @@
+.DS_Store
+
+# Local credentials and databases
+.env
+.env.*
+!.env.example
+auth.json
+*.pem
+*.key
+*.sqlite*
+
+# Dependencies, local tooling and generated state
+node_modules/
+vendor/
+.playwright-cli/
+.playwright/
+output/playwright/
+*.log

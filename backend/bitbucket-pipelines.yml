@@ -1,0 +1,85 @@
+image: php:8.5-cli
+
+definitions:
+  caches:
+    composer-vendor: vendor
+  services:
+    mysql:
+      image: mysql:8.4
+      variables:
+        MYSQL_ROOT_PASSWORD: root
+        MYSQL_DATABASE: fellwise_cms_test
+    rabbitmq:
+      image: rabbitmq:4.1-management-alpine
+      variables:
+        RABBITMQ_DEFAULT_USER: fellwise
+        RABBITMQ_DEFAULT_PASS: fellwise
+        RABBITMQ_DEFAULT_VHOST: fellwise
+  steps:
+    - step: &quality
+        name: Static analysis
+        caches: [composer, composer-vendor]
+        script:
+          - apt-get update -qq && apt-get install -yqq git unzip libicu-dev libzip-dev > /dev/null
+          - docker-php-ext-install -j$(nproc) intl pdo_mysql sockets bcmath pcntl zip > /dev/null
+          - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+          - composer validate --strict
+          - composer install --no-interaction --prefer-dist --no-progress
+          - vendor/bin/pint --test
+          - vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+          - vendor/bin/deptrac analyse --no-progress
+    - step: &tests
+        name: PHPUnit (MySQL + RabbitMQ)
+        caches: [composer, composer-vendor]
+        services: [mysql, rabbitmq]
+        script:
+          - apt-get update -qq && apt-get install -yqq git unzip default-mysql-client libicu-dev libzip-dev > /dev/null
+          - docker-php-ext-install -j$(nproc) intl pdo_mysql sockets bcmath pcntl zip > /dev/null
+          - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+          - composer install --no-interaction --prefer-dist --no-progress
+          - for db in fellwise_core_test fellwise_ops_test; do mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS $db"; done
+          - RABBITMQ_MANAGEMENT_URL=http://127.0.0.1:15672 RABBITMQ_PASSWORD=fellwise scripts/broker-test-vhost.sh
+          - cp .env.example .env && php artisan key:generate
+          - DB_PASSWORD=root php artisan test --compact
+          # Real-broker tests (retry topology, unpark, publisher confirms) on the isolated vhost
+          - BROKER_TEST_PORT=5672 BROKER_TEST_PASSWORD=fellwise DB_PASSWORD=root vendor/bin/phpunit --group broker
+
+pipelines:
+  pull-requests:
+    '**':
+      - parallel:
+          - step: *quality
+          - step: *tests
+  branches:
+    main:
+      - parallel:
+          - step: *quality
+          - step: *tests
+      - step:
+          name: Build front-end assets
+          image: node:22
+          caches: [node]
+          script:
+            - npm ci && npm run build
+          artifacts:
+            - public/build/**
+      - step:
+          name: Package & deploy (CodeDeploy)
+          deployment: staging
+          trigger: manual
+          script:
+            - apt-get update -qq && apt-get install -yqq git unzip zip libicu-dev libzip-dev > /dev/null
+            - docker-php-ext-install -j$(nproc) intl pdo_mysql sockets bcmath pcntl zip > /dev/null
+            - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+            - composer install --no-dev --optimize-autoloader --no-interaction
+            - php artisan filament:assets
+            - zip -qr "fellwise-${BITBUCKET_COMMIT}.zip" . -x '.git/*' 'tests/*' 'node_modules/*'
+            - pipe: atlassian/aws-code-deploy:1.5.0
+              variables:
+                AWS_DEFAULT_REGION: eu-west-2
+                APPLICATION_NAME: fellwise-cms
+                DEPLOYMENT_GROUP: staging
+                S3_BUCKET: fellwise-releases
+                COMMAND: upload-and-deploy
+                ZIP_FILE: "fellwise-${BITBUCKET_COMMIT}.zip"
+                WAIT: 'true'

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         failOnRisky="true"
+         failOnWarning="true"
+         beStrictAboutOutputDuringTests="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <groups>
+        <exclude>
+            <!-- Talks to the live RabbitMQ broker. Opt in with the broker group. -->
+            <group>broker</group>
+        </exclude>
+    </groups>
+    <source>
+        <include>
+            <directory>app</directory>
+            <directory>src</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+
+        <!-- One MySQL schema per bounded context, all suffixed _test. -->
+        <env name="DB_CONNECTION" value="cms" force="true"/>
+        <env name="DB_HOST" value="127.0.0.1" force="true"/>
+        <env name="DB_PORT" value="3306" force="true"/>
+        <env name="DB_USERNAME" value="root" force="true"/>
+        <env name="DB_PASSWORD" value="" force="true"/>
+        <env name="DB_CMS_DATABASE" value="fellwise_cms_test" force="true"/>
+        <env name="DB_CORE_DATABASE" value="fellwise_core_test" force="true"/>
+        <env name="DB_OPS_DATABASE" value="fellwise_ops_test" force="true"/>
+        <env name="LEGACY_DATABASE_PATH" value="storage/framework/testing/traildesk.sqlite" force="true"/>
+
+        <!-- Any accidental AMQP/management call fails fast instead of reaching the live broker. -->
+        <env name="RABBITMQ_HOST" value="127.0.0.1" force="true"/>
+        <env name="RABBITMQ_PORT" value="1" force="true"/>
+        <env name="RABBITMQ_MANAGEMENT_URL" value="http://127.0.0.1:1" force="true"/>
+    </php>
+</phpunit>

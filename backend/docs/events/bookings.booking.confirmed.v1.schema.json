@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.fellwise.co.uk/events/bookings.booking.confirmed.v1.schema.json",
+  "title": "bookings.booking.confirmed v1 payload",
+  "description": "A booking was confirmed and paid for.",
+  "x-event-name": "bookings.booking.confirmed",
+  "x-event-version": 1,
+  "type": "object",
+  "properties": {
+    "booking_id": {
+      "$ref": "#/$defs/ulid"
+    },
+    "experience_id": {
+      "$ref": "#/$defs/ulid"
+    },
+    "party_size": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 255
+    },
+    "amount_minor": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "departs_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "booking_id",
+    "experience_id",
+    "party_size",
+    "amount_minor",
+    "currency",
+    "departs_on",
+    "confirmed_at"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ulid": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    }
+  }
+}

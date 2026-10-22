@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.fellwise.co.uk/events/envelope.schema.json",
+  "title": "Fellwise integration event envelope",
+  "description": "CloudEvents-flavoured wire format. Every AMQP message body is exactly this object. The payload is validated separately against `{event_name}.v{event_version}.schema.json` (the routing key).",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "$ref": "#/$defs/ulid"
+    },
+    "event_name": {
+      "type": "string",
+      "pattern": "^[a-z]+\\.[a-z_]+\\.[a-z_]+$"
+    },
+    "event_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "aggregate_type": {
+      "type": "string",
+      "pattern": "^[a-z_]+$",
+      "maxLength": 60
+    },
+    "aggregate_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40
+    },
+    "aggregate_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "correlation_id": {
+      "$ref": "#/$defs/ulid"
+    },
+    "causation_id": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ulid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "producer": {
+      "type": "string",
+      "pattern": "^fellwise-[a-z]+$",
+      "maxLength": 60
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "event_id",
+    "event_name",
+    "event_version",
+    "occurred_at",
+    "aggregate_type",
+    "aggregate_id",
+    "aggregate_version",
+    "correlation_id",
+    "causation_id",
+    "producer",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ulid": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    }
+  }
+}
