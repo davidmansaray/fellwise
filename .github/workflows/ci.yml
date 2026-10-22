@@ -1,0 +1,94 @@
+name: Application checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 127.0.0.1:3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --silent -h 127.0.0.1 -u root"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      rabbitmq:
+        image: rabbitmq:4.1-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: fellwise
+          RABBITMQ_DEFAULT_PASS: fellwise
+          RABBITMQ_DEFAULT_VHOST: fellwise_test
+        ports:
+          - 127.0.0.1:5672:5672
+          - 127.0.0.1:15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      APP_ENV: testing
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: ''
+      DB_CMS_DATABASE: fellwise_cms_test
+      DB_CORE_DATABASE: fellwise_core_test
+      DB_OPS_DATABASE: fellwise_ops_test
+      RABBITMQ_USER: fellwise
+      RABBITMQ_PASSWORD: fellwise
+      RABBITMQ_MANAGEMENT_URL: http://127.0.0.1:15672
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
+        with:
+          php-version: '8.5'
+          tools: composer:v2
+          coverage: none
+          extensions: pdo_mysql, pdo_sqlite, mbstring, intl, bcmath, sockets, pcntl, zip
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install locked dependencies
+        run: |
+          composer validate --strict
+          composer install --prefer-dist --no-interaction --no-progress
+          npm ci
+          cp .env.example .env
+          php artisan key:generate --force
+      - name: Static analysis and architecture boundaries
+        run: composer quality
+      - name: Create isolated test schemas
+        run: |
+          for db in fellwise_cms_test fellwise_core_test fellwise_ops_test; do
+            mysql -h127.0.0.1 -uroot -e "CREATE DATABASE $db"
+          done
+      - name: Unit, feature and contract tests
+        run: php artisan test --compact
+      - name: Real RabbitMQ retry, unpark and confirm tests
+        env:
+          BROKER_TEST_PORT: '5672'
+          BROKER_TEST_PASSWORD: fellwise
+        run: |
+          curl -fsS --retry 20 --retry-all-errors --retry-delay 2 \
+            -u "$RABBITMQ_USER:$RABBITMQ_PASSWORD" "$RABBITMQ_MANAGEMENT_URL/api/overview" > /dev/null
+          scripts/broker-test-vhost.sh
+          vendor/bin/phpunit --group broker --fail-on-skipped --fail-on-empty-test-suite
+      - name: Production asset build
+        run: npm run build

@@ -99,7 +99,7 @@ php artisan bookings:simulate [--per-minute=3]
 composer quality        # pint --test · phpstan (level 8) · deptrac
 php artisan test        # 175 tests, against dedicated *_test schemas
 scripts/broker-test-vhost.sh   # once: isolated fellwise_test vhost with the same topology
-BROKER_TEST_PORT=5682 BROKER_TEST_PASSWORD=… vendor/bin/phpunit --group broker   # retry topology, unpark, confirms on a real RabbitMQ
+BROKER_TEST_PORT=5682 BROKER_TEST_PASSWORD=… vendor/bin/phpunit --group broker --fail-on-skipped --fail-on-empty-test-suite   # retry topology, unpark, confirms on a real RabbitMQ
 ```
 
 The broker group proves ADR-003 on a real RabbitMQ: a failed message is acked only after it is confirmed in `retry.5s` with `x-retry-count=1`, its TTL dead-letters it back to the owning queue, and unpark resets the budget. The main suite covers the domain (aggregates, money, lead-time buckets), the retry policy, upcasting, JSON-Schema contract tests for every event version and for what actually leaves the outbox, outbox atomicity and relay failure modes, the processor end to end (duplicates, fault injection, parking, out-of-order and tombstone cases, malformed messages), contract violations parking on the first attempt, projector idempotency and ordering guards, the consistency checker, the TrailDesk backfill and the reporting queries.
@@ -111,3 +111,7 @@ The broker group proves ADR-003 on a real RabbitMQ: a failed message is acked on
 `docs/adr/`: 001 one repo, two bounded contexts · 002 outbox and inbox · 003 retry topology and parking lot · 004 strangler-fig migration · 005 CQRS read models for reporting.
 
 **Deliberately not built** (natural next steps for production): Elasticsearch fed from the same events for catalogue search, a GraphQL read API, sagas or process managers, per-region cutover flags for the TrailDesk read path, and monthly partitioning of the read models.
+
+## GitHub checks
+
+The public repository's [Application checks](../.github/workflows/ci.yml) run quality, normal tests, explicit real-broker tests and a locked frontend build with disposable MySQL/RabbitMQ services. PHPUnit's test-schema guards remain enabled; broker tests use only `fellwise_test`. No live provider credentials or deployment access are required. [Latest runs](https://github.com/davidmansaray/fellwise/actions/workflows/ci.yml).

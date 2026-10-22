@@ -72,6 +72,12 @@ php artisan test   # unit, feature and contract tests
 
 A separate `broker` test group runs against a real RabbitMQ vhost to prove the retry topology, unparking and publisher confirms. `bitbucket-pipelines.yml` runs quality and tests in parallel against MySQL and RabbitMQ service containers.
 
+## Continuous checks
+
+The [GitHub Actions workflow](.github/workflows/ci.yml) runs static analysis, architecture checks, the unit/feature/contract suite, three real-broker tests and the production asset build. MySQL schemas and the RabbitMQ `fellwise_test` vhost exist only inside the disposable CI job. Broker checks fail if they are skipped or select no tests. The workflow has no deployment step.
+
+[View the latest checks](https://github.com/davidmansaray/fellwise/actions/workflows/ci.yml).
+
 ## Further reading
 
 - [`backend/README.md`](backend/README.md): full walkthrough, operator commands and the guarantees table
