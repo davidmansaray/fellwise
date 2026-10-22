@@ -49,7 +49,6 @@ jobs:
       DB_OPS_DATABASE: fellwise_ops_test
       RABBITMQ_USER: fellwise
       RABBITMQ_PASSWORD: fellwise
-      RABBITMQ_MANAGEMENT_URL: http://127.0.0.1:15672
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -83,6 +82,7 @@ jobs:
         run: php artisan test --compact
       - name: Real RabbitMQ retry, unpark and confirm tests
         env:
+          RABBITMQ_MANAGEMENT_URL: http://127.0.0.1:15672
           BROKER_TEST_PORT: '5672'
           BROKER_TEST_PASSWORD: fellwise
         run: |
